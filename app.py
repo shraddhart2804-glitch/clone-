@@ -1,252 +1,40 @@
-import streamlit as st
-from components.navbar import render_navbar
-from services.auth_api import login
-
-# ---------- PAGE CONFIG ----------
-st.set_page_config(
-    page_title="CampusVision",
-    page_icon="📚",
-    layout="centered",
-    initial_sidebar_state="collapsed"
-)
-
-# Only used in demo mode, when the backend server is not reachable
-TEACHER_ACCESS_CODE = "teacher123"
-
-render_navbar()
-
-# ---------- CUSTOM STYLING ----------
-st.markdown("""
-    <style>
-    @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Jost:wght@400;500;600&display=swap');
-
-    html, body, [class*="css"] {
-        font-family: 'Jost', sans-serif;
-    }
-
-    .stApp {
-        background: #F5F1EA;
-    }
-
-    .block-container {
-        padding-top: 2.5rem;
-    }
-
-    .hero {
-        background: #FFFFFF;
-        padding: 2.6rem 1.5rem 2rem 1.5rem;
-        border-radius: 4px;
-        text-align: center;
-        border: 1px solid #E4DCCB;
-        border-bottom: 3px solid #A88B5A;
-        margin-bottom: 2rem;
-    }
-    .hero h1 {
-        font-family: 'Cormorant Garamond', serif;
-        color: #3B3226;
-        font-size: 3rem;
-        font-weight: 700;
-        margin: 0;
-        letter-spacing: 1px;
-    }
-    .hero p {
-        font-family: 'Jost', sans-serif;
-        color: #8A7B60;
-        font-size: 0.95rem;
-        margin-top: 0.5rem;
-        margin-bottom: 0;
-        letter-spacing: 3px;
-        text-transform: uppercase;
-    }
-
-    div[data-testid="stVerticalBlockBorderWrapper"] {
-        background: #FFFFFF;
-        border-radius: 4px;
-        border: 1px solid #E4DCCB !important;
-    }
-
-    .card-title {
-        font-family: 'Cormorant Garamond', serif;
-        font-size: 1.7rem;
-        font-weight: 700;
-        color: #3B3226;
-        margin-bottom: 0.2rem;
-    }
-    .card-caption {
-        font-family: 'Jost', sans-serif;
-        color: #A69B85;
-        font-size: 0.88rem;
-        margin-bottom: 1.3rem;
-        letter-spacing: 0.3px;
-    }
-
-    div[data-testid="stTextInput"] input {
-        border-radius: 2px;
-        border: 1px solid #D8CDB8;
-        background-color: #FBF9F5;
-        padding: 0.65rem 0.9rem;
-        font-family: 'Jost', sans-serif;
-        color: #3B3226;
-    }
-    div[data-testid="stTextInput"] input:focus {
-        border-color: #A88B5A;
-        box-shadow: 0 0 0 1px #A88B5A;
-        background-color: #FFFFFF;
-    }
-    div[data-testid="stTextInput"] label,
-    div[data-testid="stRadio"] > label {
-        font-weight: 500;
-        color: #6B6152;
-        font-family: 'Jost', sans-serif;
-        font-size: 0.85rem;
-        letter-spacing: 0.5px;
-        text-transform: uppercase;
-    }
-
-    .stButton>button {
-        width: 100%;
-        background: #3B3226;
-        color: #F5F1EA;
-        border-radius: 2px;
-        padding: 0.65rem 0;
-        font-weight: 500;
-        font-size: 0.95rem;
-        font-family: 'Jost', sans-serif;
-        letter-spacing: 1.5px;
-        text-transform: uppercase;
-        border: none;
-        transition: background 0.2s ease;
-    }
-    .stButton>button:hover {
-        background: #A88B5A;
-        color: #FFFFFF;
-    }
-
-    div[data-testid="stMetric"] {
-        background: #FBF9F5;
-        border-radius: 2px;
-        padding: 0.9rem;
-        border: 1px solid #E4DCCB;
-    }
-    div[data-testid="stMetricLabel"] {
-        color: #A69B85;
-        font-weight: 500;
-        text-transform: uppercase;
-        letter-spacing: 1px;
-        font-size: 0.75rem;
-    }
-    div[data-testid="stMetricValue"] {
-        color: #3B3226;
-        font-family: 'Cormorant Garamond', serif;
-        font-size: 1.8rem;
-    }
-
-    div[data-testid="stAlert"] {
-        border-radius: 2px;
-        font-family: 'Jost', sans-serif;
-    }
-    </style>
-""", unsafe_allow_html=True)
-
-# ---------- SESSION STATE ----------
-defaults = {
-    "logged_in": False,
-    "student_name": "",
-    "student_id": "",
-    "role": "",
-    "token": "",
-    "backend_mode": False,
-}
-for key, value in defaults.items():
-    if key not in st.session_state:
-        st.session_state[key] = value
-
-# ---------- HERO HEADER ----------
-st.markdown("""
-    <div class="hero">
-        <h1>CampusVision</h1>
-        <p>Smart Campus Management System</p>
-    </div>
-""", unsafe_allow_html=True)
-
-# ---------- LOGIN VIEW ----------
-if not st.session_state.logged_in:
-
-    with st.container(border=True):
-        st.markdown('<p class="card-title">Login</p>', unsafe_allow_html=True)
-        st.markdown('<p class="card-caption">Choose your role and enter your details</p>', unsafe_allow_html=True)
-
-        role = st.radio("I am a", ["Student", "Teacher"], horizontal=True)
-
-        name = st.text_input("Full Name", placeholder="e.g. Your name")
-
-        access_code = ""
-        if role == "Student":
-            user_id = st.text_input("Student ID", placeholder="e.g. UMIT2026045")
-        else:
-            user_id = st.text_input("Teacher ID", placeholder="e.g. TCH001")
-            access_code = st.text_input("Password", type="password")
-
-        login_clicked = st.button("Login")
-
-        if login_clicked:
-            if not name.strip() or not user_id.strip():
-                st.error("Please enter your name and ID.")
-            else:
-                result, error, offline = login(role.lower(), user_id.strip(), access_code)
-
-                if result is not None:
-                    # Logged in through the backend
-                    st.session_state.logged_in = True
-                    st.session_state.student_name = result["name"]
-                    st.session_state.student_id = result["user_id"]
-                    st.session_state.role = str(result["role"]).strip().lower()
-                    st.session_state.token = result["token"]
-                    st.session_state.backend_mode = True
-                    st.rerun()
-
-                elif offline:
-                    # Backend not running: demo mode with the old local check
-                    if role == "Teacher" and access_code != TEACHER_ACCESS_CODE:
-                        st.error("Incorrect teacher password.")
-                    else:
-                        st.session_state.logged_in = True
-                        st.session_state.student_name = name.strip()
-                        st.session_state.student_id = user_id.strip()
-                        st.session_state.role = role.lower()
-                        st.session_state.token = ""
-                        st.session_state.backend_mode = False
-                        st.rerun()
-
-                else:
-                    st.error(error)
-
-# ---------- LOGGED-IN VIEW ----------
-else:
-    is_teacher = st.session_state.role == "teacher"
-
-    with st.container(border=True):
-        st.markdown(f'<p class="card-title">Welcome back, {st.session_state.student_name}</p>', unsafe_allow_html=True)
-        st.markdown('<p class="card-caption">Here\'s your account overview</p>', unsafe_allow_html=True)
-
-        col1, col2, col3 = st.columns(3)
-        with col1:
-            st.metric("Teacher ID" if is_teacher else "Student ID", st.session_state.student_id)
-        with col2:
-            st.metric("Role", st.session_state.role.title())
-        with col3:
-            st.metric("Status", "Active")
-
-        st.divider()
-        if is_teacher:
-            st.info("Use the sidebar to take attendance, view defaulters, and look up a student's record.")
-        else:
-            st.info("Use the sidebar to view your **Dashboard**, **Library Card**, **Issued Books**, and **Attendance**.")
-
-        if not st.session_state.backend_mode:
-            st.caption("Demo mode: the backend server is not connected.")
-
-        if st.button("Logout"):
-            for key, value in defaults.items():
-                st.session_state[key] = value
-            st.rerun()
+﻿
+import os
+ 
+from flask import Flask
+ 
+from database.db import init_db, db
+from models.attendance import create_table as create_attendance_table
+from routes.library_routes import library_bp
+from routes.auth_routes import auth_bp
+from routes.student_routes import student_bp
+from routes.defaulter_routes import defaulter_bp
+from routes.attendance_routes import attendance_bp
+ 
+app = Flask(__name__)
+ 
+# Signs login tokens. Set a real value in production, never commit it.
+app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "dev-only-change-me")
+ 
+app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///campusvision.db"
+app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+db.init_app(app)
+ 
+app.register_blueprint(library_bp)
+app.register_blueprint(auth_bp)
+app.register_blueprint(student_bp)
+app.register_blueprint(defaulter_bp)
+app.register_blueprint(attendance_bp)
+ 
+ 
+@app.route("/")
+def home():
+    return {"message": "CampusVision backend is running"}
+ 
+ 
+if __name__ == "__main__":
+    init_db()
+    create_attendance_table()  # adds the extra attendance columns if missing
+    with app.app_context():
+        db.create_all()  # creates the books table (SQLAlchemy)
+    app.run(debug=True, port=5000)
